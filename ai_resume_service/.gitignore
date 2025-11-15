@@ -1,0 +1,83 @@
+# === Python Build Artifacts ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
+*.dSYM/
+
+# === Distribution Folders ===
+build/
+dist/
+*.egg-info/
+*.manifest
+*.spec
+*.whl
+*.dist-info/
+
+# === Virtual Environments ===
+venv/
+env/
+.venv/
+venv3/
+.env
+.env.*
+
+# === Model Artifacts & Cache ===
+*.bin
+*.safetensors
+*.json
+*.pt
+*.h5
+*.ckpt
+deepseek_offload/
+sentence_transformers_cache/
+transformers_cache/
+model_cache/
+cache/
+*.tflite
+
+# === Logs & Outputs ===
+*.log
+*.out
+
+# === IDE / Editor Settings ===
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
+
+# === Jupyter & Notebook Artifacts ===
+.ipynb_checkpoints/
+
+# === Pytest & Coverage ===
+.pytest_cache/
+.coverage
+.coverage.*
+*.cover
+*.cov
+*.lcov
+*.clover
+
+# === Test Output Files ===
+*.test
+*.tests
+*.test.*
+
+# === Node (in case you connect frontend later) ===
+node_modules/
+
+# === Your Notes or Temporary Files ===
+*.tmp
+*.bak
+*.swp
+*.old
+
+# === DeepSeek (custom folders if added) ===
+deepseek_downloads/
+hf_cache/

@@ -1,0 +1,15 @@
+transformers
+torch
+accelerate
+sentencepiece
+huggingface-hub
+pymupdf
+fastapi
+uvicorn
+tqdm
+scikit-learn
+sentence-transformers
+nltk
+python-dotenv
+boto3
+spacy
