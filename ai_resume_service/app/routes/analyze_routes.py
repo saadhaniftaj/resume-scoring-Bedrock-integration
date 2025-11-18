@@ -34,9 +34,9 @@ class AnalyzeResponse(BaseModel):
 
 class CandidateInfo(BaseModel):
     """Candidate information extracted from resume."""
-    name: Optional[str] = None
-    location: Optional[str] = None
-    work_experience_years: Optional[int] = None
+    name: str
+    location: str
+    work_experience_years: int = 0
 
 
 class AnalysisBreakdown(BaseModel):
@@ -50,16 +50,12 @@ class AnalysisBreakdown(BaseModel):
 
 class AnalyzeAIResponse(BaseModel):
     """
-    Response model for the new AI-driven scoring endpoint.
-    
-    This model represents the structured output from the AI scoring system,
-    which applies complex business rules (location caps, synonym recognition,
-    soft skill exclusion, date calculation, etc.).
+    Response model for the new AI-driven scoring endpoint (STRICT format).
     """
-    match_percentage: int
+    match_percentage: float
+    summary: str
     candidate_info: CandidateInfo
     analysis_breakdown: AnalysisBreakdown
-    summary: str
     error: Optional[str] = None
 
 

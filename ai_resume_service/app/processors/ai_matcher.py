@@ -477,7 +477,7 @@ def calculate_match_score(must_have_results, nice_have_results) -> float:
 
     # Niceties ratio (proportion satisfied)
     nice_strengths = [strength(r["evidence"]) if r.get("met") else 0.0 for r in nice_have_results]
-    nice_ratio = (sum(1 for s in nice_strengths if s > 0.0) / len(nice_strengths)) if nice_have_results else 0.0
+    nice_ratio = (sum(1 for s in nice_strengths if s > 0.0) / len(nice_have_results)) if nice_have_results else 0.0
 
     # --- Curved scoring for musts ---
     # Uses configurable exponent for non-linear scoring
@@ -705,6 +705,37 @@ def create_ai_scoring_user_prompt(resume_text: str, job_description: str) -> str
 Analyze the resume against the job description and return the scoring JSON following ALL the rules in the system prompt."""
 
 
+def normalize_analyze_ai_response(ai: dict) -> dict:
+    # Guarantee all mandatory keys/structure exist for client contract
+    summary = ai.get("summary") or ""
+    ci = ai.get("candidate_info", {})
+    ab = ai.get("analysis_breakdown", ai)
+    # Accept field present on top-level or under .analysis_breakdown (for LLM flexibility)
+    def get_nested(d, key, default):
+        return d.get(key) if key in d else ai.get(key, default)
+
+    candidate_info = {
+        "name": str(get_nested(ci, "name", "")),
+        "location": str(get_nested(ci, "location", "")),
+        "work_experience_years": int(get_nested(ci, "work_experience_years", get_nested(ai, "work_experience_years", 0)))
+    }
+    analysis_breakdown = {
+        "location_match"     : bool(get_nested(ab, "location_match", False)),
+        "must_haves_total"   : int(get_nested(ab, "must_haves_total", 0)),
+        "must_haves_met"     : int(get_nested(ab, "must_haves_met", 0)),
+        "nice_to_haves_total": int(get_nested(ab, "nice_to_haves_total", 0)),
+        "nice_to_haves_met"  : int(get_nested(ab, "nice_to_haves_met", 0)),
+    }
+    result = {
+        "match_percentage": float(get_nested(ai, "match_percentage", 0)),
+        "summary": summary,
+        "candidate_info": candidate_info,
+        "analysis_breakdown": analysis_breakdown,
+        "error": ai.get("error") # could be None/null or a string
+    }
+    return result
+
+
 def analyze_resume_with_job_ai(
     resume_text: str,
     job_description: str,
@@ -765,68 +796,60 @@ def analyze_resume_with_job_ai(
         if "error" in parsed:
             logger.error(f"Error parsing AI scoring response: {parsed['error']}")
             logger.debug(f"Full raw response: {raw_response}")
-            return {
-                "error": parsed["error"],
-                "match_percentage": 0,
-                "candidate_info": {},
-                "analysis_breakdown": {},
-                "summary": "Failed to parse AI response"
-            }
+            # Return normalized structure—empty contract
+            return normalize_analyze_ai_response({"error": parsed["error"]})
         
         # Validate required fields
-        required_fields = [
-            "match_percentage", "location_match", "must_haves_total", 
-            "must_haves_met", "nice_to_haves_total", "nice_to_haves_met", 
-            "work_experience_years", "summary"
-        ]
+        # required_fields = [
+        #     "match_percentage", "location_match", "must_haves_total", 
+        #     "must_haves_met", "nice_to_haves_total", "nice_to_haves_met", 
+        #     "work_experience_years", "summary"
+        # ]
         
-        missing_fields = [field for field in required_fields if field not in parsed]
-        if missing_fields:
-            logger.error(f"AI response missing required fields: {missing_fields}")
-            return {
-                "error": f"AI response incomplete. Missing: {', '.join(missing_fields)}",
-                "match_percentage": 0,
-                "candidate_info": {},
-                "analysis_breakdown": {},
-                "summary": "AI response did not follow the required format"
-            }
+        # missing_fields = [field for field in required_fields if field not in parsed]
+        # if missing_fields:
+        #     logger.error(f"AI response missing required fields: {missing_fields}")
+        #     return {
+        #         "error": f"AI response incomplete. Missing: {', '.join(missing_fields)}",
+        #         "match_percentage": 0,
+        #         "candidate_info": {},
+        #         "analysis_breakdown": {},
+        #         "summary": "AI response did not follow the required format"
+        #     }
         
         # Extract candidate info from resume (basic parsing)
-        candidate_info = {
-            "name": None,  # Could extract with NER if needed
-            "location": None,  # Could extract with NER if needed
-            "work_experience_years": parsed.get("work_experience_years")
-        }
+        # candidate_info = {
+        #     "name": None,  # Could extract with NER if needed
+        #     "location": None,  # Could extract with NER if needed
+        #     "work_experience_years": parsed.get("work_experience_years")
+        # }
         
         # Structure the analysis breakdown
-        analysis_breakdown = {
-            "location_match": parsed["location_match"],
-            "must_haves_total": parsed["must_haves_total"],
-            "must_haves_met": parsed["must_haves_met"],
-            "nice_to_haves_total": parsed["nice_to_haves_total"],
-            "nice_to_haves_met": parsed["nice_to_haves_met"]
-        }
+        # analysis_breakdown = {
+        #     "location_match": parsed["location_match"],
+        #     "must_haves_total": parsed["must_haves_total"],
+        #     "must_haves_met": parsed["must_haves_met"],
+        #     "nice_to_haves_total": parsed["nice_to_haves_total"],
+        #     "nice_to_haves_met": parsed["nice_to_haves_met"]
+        # }
         
-        match_percentage = parsed["match_percentage"]
+        normalized_ai = normalize_analyze_ai_response(parsed)
         
         # Log completion
         total_duration = (time.time() - start_time) * 1000
-        log_analysis_complete(match_percentage, total_duration)
-        
-        logger.info(
-            f"AI Scoring complete | Match: {match_percentage}% | "
-            f"Must-haves: {parsed['must_haves_met']}/{parsed['must_haves_total']} | "
-            f"Nice-to-haves: {parsed['nice_to_haves_met']}/{parsed['nice_to_haves_total']} | "
-            f"Location match: {parsed['location_match']}"
+        log_analysis_complete(
+            normalized_ai["match_percentage"],
+            total_duration,
         )
         
-        return {
-            "match_percentage": match_percentage,
-            "candidate_info": candidate_info,
-            "analysis_breakdown": analysis_breakdown,
-            "summary": parsed["summary"],
-            "error": None
-        }
+        logger.info(
+            f"AI Scoring complete | Match: {normalized_ai['match_percentage']}% | "
+            f"Must-haves: {normalized_ai['analysis_breakdown']['must_haves_met']}/{normalized_ai['analysis_breakdown']['must_haves_total']} | "
+            f"Nice-to-haves: {normalized_ai['analysis_breakdown']['nice_to_haves_met']}/{normalized_ai['analysis_breakdown']['nice_to_haves_total']} | "
+            f"Location match: {normalized_ai['analysis_breakdown']['location_match']}"
+        )
+        
+        return normalized_ai
         
     except Exception as e:
         logger.error(f"Unexpected error during AI scoring analysis: {str(e)}", exc_info=True)

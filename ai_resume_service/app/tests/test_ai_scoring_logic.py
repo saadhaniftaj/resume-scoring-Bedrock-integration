@@ -67,6 +67,11 @@ class TestLocationCapRule:
         assert result["analysis_breakdown"]["must_haves_met"] >= 2, \
             "AI should recognize that candidate has the required skills despite location"
 
+        # Additional check: summary is professional bio only
+        assert 'match' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'score' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'job' not in result.get('summary', '').lower(), 'Summary should not reference the job'
+
 
 class TestZeroMustHavesRule:
     """Test Case 2: Zero Must-Haves (Rule Check)"""
@@ -115,6 +120,11 @@ class TestZeroMustHavesRule:
         
         assert result["analysis_breakdown"]["must_haves_total"] >= 3, \
             "Should correctly identify at least 3 must-haves"
+
+        # Additional check: summary is professional bio only
+        assert 'match' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'score' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'job' not in result.get('summary', '').lower(), 'Summary should not reference the job'
 
 
 class TestNinetyPercentMustHavesRule:
@@ -168,6 +178,11 @@ class TestNinetyPercentMustHavesRule:
         assert result["analysis_breakdown"]["nice_to_haves_met"] == 0, \
             "Should have zero nice-to-haves met (no Docker)"
 
+        # Additional check: summary is professional bio only
+        assert 'match' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'score' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'job' not in result.get('summary', '').lower(), 'Summary should not reference the job'
+
 
 class TestSynonymRecognitionIntelligence:
     """Test Case 4: Synonym Recognition (Intelligence Check)"""
@@ -212,6 +227,11 @@ class TestSynonymRecognitionIntelligence:
         # Should get high score since the main must-have is met
         assert result["match_percentage"] >= 90, \
             f"Expected at least 90% (SQL requirement met via synonyms), got {result['match_percentage']}%"
+
+        # Additional check: summary is professional bio only
+        assert 'match' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'score' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'job' not in result.get('summary', '').lower(), 'Summary should not reference the job'
 
 
 class TestSoftSkillsIgnoredRule:
@@ -258,6 +278,11 @@ class TestSoftSkillsIgnoredRule:
         # Since Python is met and soft skills are ignored/auto-met, should get high score
         assert result["match_percentage"] >= 85, \
             f"Expected high score (Python met, soft skills ignored), got {result['match_percentage']}%"
+
+        # Additional check: summary is professional bio only
+        assert 'match' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'score' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'job' not in result.get('summary', '').lower(), 'Summary should not reference the job'
 
 
 class TestDateCalculationIntelligence:
@@ -310,6 +335,11 @@ class TestDateCalculationIntelligence:
         # Should get high score since experience requirement is met
         assert result["match_percentage"] >= 90, \
             f"Expected at least 90% (experience requirement met), got {result['match_percentage']}%"
+
+        # Additional check: summary is professional bio only
+        assert 'match' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'score' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'job' not in result.get('summary', '').lower(), 'Summary should not reference the job'
 
 
 # ============================================================================
@@ -377,6 +407,11 @@ class TestComplexIntegration:
         
         assert result["analysis_breakdown"]["nice_to_haves_met"] >= 2, \
             "Should recognize Docker and Kubernetes"
+
+        # Additional check: summary is professional bio only
+        assert 'match' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'score' not in result.get('summary', '').lower(), 'Summary should not mention match or score'
+        assert 'job' not in result.get('summary', '').lower(), 'Summary should not reference the job'
 
 
 # ============================================================================
