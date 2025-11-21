@@ -57,25 +57,8 @@ class BedrockDeepSeekWrapper:
             raise
     
     def ask(self, prompt: str, max_tokens: int = 1024) -> str:
-        """
-        Send a prompt to the Bedrock DeepSeek model.
-        
-        This method implements the same interface as DeepSeekLLM.ask(),
-        allowing it to be a drop-in replacement.
-        
-        Args:
-            prompt: The prompt text (can include system + user prompts combined)
-            max_tokens: Maximum tokens to generate (default: 1024)
-        
-        Returns:
-            The model's response text
-        
-        Raises:
-            Exception: If the Bedrock API call fails
-        """
+        """Send a prompt to Bedrock DeepSeek and extract the clean JSON reply."""
         try:
-            # Construct request body for Bedrock DeepSeek
-            # DeepSeek models on Bedrock typically expect a messages format
             request_body = {
                 "messages": [
                     {
@@ -87,56 +70,42 @@ class BedrockDeepSeekWrapper:
                 "temperature": 0.0,
                 "top_p": 1.0
             }
-            
             logger.debug(f"Sending request to Bedrock | Model: {self.model_id} | Max tokens: {max_tokens}")
-            
-            # Invoke the model
             response = self.bedrock_runtime.invoke_model(
                 modelId=self.model_id,
                 contentType="application/json",
                 accept="application/json",
                 body=json.dumps(request_body)
             )
-            
-            # Parse the response
             response_body = json.loads(response['body'].read())
             logger.debug(f"Raw Bedrock response keys: {response_body.keys()}")
-            
-            # Extract the generated text
-            # DeepSeek R1 on Bedrock can have multiple response formats
             generated_text = None
-            
             if 'content' in response_body:
-                if isinstance(response_body['content'], list) and len(response_body['content']) > 0:
-                    # Format: {"content": [{"text": "..."}]}
+                if isinstance(response_body['content'], list) and response_body['content']:
                     generated_text = response_body['content'][0].get('text', '')
                 elif isinstance(response_body['content'], str):
-                    # Format: {"content": "..."}
                     generated_text = response_body['content']
-            elif 'choices' in response_body and len(response_body['choices']) > 0:
-                # Format: {"choices": [{"message": {"content": "...", "reasoning_content": "..."}}]}
+            elif 'choices' in response_body and response_body['choices']:
                 choice = response_body['choices'][0]
                 if 'message' in choice:
-                    # DeepSeek R1 returns reasoning_content (thinking) and content (final answer)
-                    # Prefer content, but fall back to reasoning_content if content is null
                     generated_text = choice['message'].get('content') or choice['message'].get('reasoning_content', '')
                 elif 'text' in choice:
                     generated_text = choice.get('text', '')
             elif 'completion' in response_body:
-                # Format: {"completion": "..."}
                 generated_text = response_body['completion']
             elif 'output' in response_body:
-                # Format: {"output": "..."}
                 generated_text = response_body['output']
-            
-            if generated_text is None or generated_text == '':
+            if not generated_text:
                 logger.error(f"Could not extract text from Bedrock response. Full response: {json.dumps(response_body, indent=2)}")
                 raise ValueError("Empty or no text content in Bedrock response")
-            
             logger.debug(f"Received response from Bedrock | Length: {len(generated_text)} chars")
-            
+            json_start = generated_text.find('{')
+            json_end = generated_text.rfind('}')
+            if json_start != -1 and json_end != -1 and json_end > json_start:
+                cleaned = generated_text[json_start:json_end + 1]
+                return cleaned.strip()
+            logger.warning("No valid JSON object detected in model output; returning full text")
             return generated_text.strip()
-            
         except Exception as e:
             logger.error(f"Bedrock API call failed: {str(e)}", exc_info=True)
             raise Exception(f"Failed to invoke Bedrock model: {str(e)}")
