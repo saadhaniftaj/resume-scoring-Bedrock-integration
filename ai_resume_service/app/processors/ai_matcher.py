@@ -788,14 +788,16 @@ def analyze_resume_with_job_ai(
         llm_duration = (time.time() - llm_start) * 1000
         
         logger.debug(f"LLM response received in {llm_duration:.2f}ms")
-        logger.debug(f"Raw LLM response (first 500 chars): {raw_response[:500]}")
+        logger.debug(f"Raw LLM response (first 500 chars): {raw_response[:500] if raw_response else 'None'}")
+        logger.debug(f"Raw LLM response type: {type(raw_response)}, length: {len(raw_response) if raw_response else 0}")
         
         # Parse the AI's JSON response
         parsed = safely_parse_json(raw_response)
         
         if "error" in parsed:
             logger.error(f"Error parsing AI scoring response: {parsed['error']}")
-            logger.debug(f"Full raw response: {raw_response}")
+            logger.error(f"Full raw response (first 1000 chars): {raw_response[:1000] if raw_response else 'None'}")
+            logger.error(f"Full raw response (last 500 chars): {raw_response[-500:] if raw_response and len(raw_response) > 500 else raw_response}")
             # Return normalized structure—empty contract
             return normalize_analyze_ai_response({"error": parsed["error"]})
         

@@ -99,12 +99,15 @@ class BedrockDeepSeekWrapper:
                 logger.error(f"Could not extract text from Bedrock response. Full response: {json.dumps(response_body, indent=2)}")
                 raise ValueError("Empty or no text content in Bedrock response")
             logger.debug(f"Received response from Bedrock | Length: {len(generated_text)} chars")
+            logger.debug(f"First 200 chars of generated_text: {generated_text[:200]}")
             json_start = generated_text.find('{')
             json_end = generated_text.rfind('}')
             if json_start != -1 and json_end != -1 and json_end > json_start:
                 cleaned = generated_text[json_start:json_end + 1]
+                logger.debug(f"Extracted JSON block | Start: {json_start}, End: {json_end}, Length: {len(cleaned)}")
+                logger.debug(f"First 200 chars of cleaned JSON: {cleaned[:200]}")
                 return cleaned.strip()
-            logger.warning("No valid JSON object detected in model output; returning full text")
+            logger.warning(f"No valid JSON object detected in model output. First 500 chars: {generated_text[:500]}")
             return generated_text.strip()
         except Exception as e:
             logger.error(f"Bedrock API call failed: {str(e)}", exc_info=True)
